@@ -1,61 +1,38 @@
 use std::env;
-use std::io::Write;
 use std::path::Path;
 use std::process::Command;
-use tempfile::tempdir;
-
-pub fn make_cargo_toml(name: &str) -> String {
-    format!(
-        r#"[package]
-name = "{name}"
-version = "0.1.0"
-edition = "2024"
-
-[dependencies]
-"#
-    )
-}
+use tempfile::tempdir_in;
 
 pub fn execute_prepost(cargo: impl AsRef<Path>, path: impl AsRef<Path>) {
     let cargo = cargo.as_ref();
     let path = path.as_ref();
 
-    let temp = match tempdir() {
+    let temp = match tempdir_in("./target") {
         Ok(v) => v,
         Err(e) => {
-            log::error!("Failed to create temporary directory: {}", e.to_string());
+            log::error!("Failed to create temporary directory: {e}");
             std::process::exit(1);
         }
     };
     let src_dir = temp.path().join("src");
     std::fs::create_dir_all(&src_dir).unwrap();
-    if let Err(e) = std::fs::copy(&path, src_dir.join("main.rs")) {
-        log::error!("Failed to copy {}: {}", path.display(), e.to_string());
+    if let Err(e) = std::fs::copy(path, src_dir.join("main.rs")) {
+        log::error!("Failed to copy {}: {}", path.display(), e);
         std::process::exit(1);
     }
-    let mut cargo_toml = match std::fs::OpenOptions::new()
-        .write(true)
-        .create(true)
-        .open(temp.path().join("Cargo.toml"))
-    {
-        Ok(v) => v,
-        Err(e) => {
-            log::error!("Failed to open Cargo.toml: {}", e.to_string());
-            std::process::exit(1);
-        }
-    };
-    if let Err(e) = write!(cargo_toml, "{}", make_cargo_toml("prepost-script")) {
-        log::error!("Failed to write Cargo.toml: {}", e.to_string());
+
+    if let Err(e) = std::fs::copy("./Cargo.toml", temp.path().join("Cargo.toml")) {
+        log::error!("Failed to write Cargo.toml: {e}");
     }
 
-    let mut cmd = match Command::new(&cargo)
-        .current_dir(&temp.path())
+    let mut cmd = match Command::new(cargo)
+        .current_dir(temp.path())
         .args(["run", "--release"])
         .spawn()
     {
         Ok(v) => v,
         Err(e) => {
-            log::error!("Failed to spawn cargo: {}", e.to_string());
+            log::error!("Failed to spawn cargo: {e}");
             std::process::exit(1);
         }
     };
@@ -72,7 +49,7 @@ pub fn execute_prepost(cargo: impl AsRef<Path>, path: impl AsRef<Path>) {
 
 pub fn main(args: impl Iterator<Item = impl ToString>) {
     let args: Vec<_> = args.map(|v| v.to_string()).collect();
-    let subcommand = args.get(0).map(|v| v.clone());
+    let subcommand = args.first().cloned();
 
     let path = match env::var("PATH") {
         Ok(v) => v,
@@ -85,12 +62,12 @@ pub fn main(args: impl Iterator<Item = impl ToString>) {
     let mut cargo = None;
     for path in paths {
         let path = path.join("cargo");
-        if path.is_file() {
-            if env::current_exe().expect("Failed to fetch current executable path") != path {
-                log::info!("Find default cargo: {}", path.display());
-                cargo = Some(path);
-                break;
-            }
+        if path.is_file()
+            && env::current_exe().expect("Failed to fetch current executable path") != path
+        {
+            log::info!("Find default cargo: {}", path.display());
+            cargo = Some(path);
+            break;
         }
     }
     let cargo = match cargo {
@@ -104,7 +81,7 @@ pub fn main(args: impl Iterator<Item = impl ToString>) {
     let cwd = match env::current_dir() {
         Ok(v) => v,
         Err(e) => {
-            log::error!("Failed to get current working directory: {}", e.to_string());
+            log::error!("Failed to get current working directory: {e}");
             std::process::exit(1);
         }
     };
@@ -130,7 +107,7 @@ pub fn main(args: impl Iterator<Item = impl ToString>) {
             v
         }
         Err(e) => {
-            log::error!("Failed to spawn cargo: {}", e.to_string());
+            log::error!("Failed to spawn cargo: {e}");
             std::process::exit(1);
         }
     };
@@ -147,7 +124,7 @@ pub fn main(args: impl Iterator<Item = impl ToString>) {
             }
         }
         Err(e) => {
-            log::error!("Failed to wait child process: {}", e.to_string());
+            log::error!("Failed to wait child process: {e}");
             std::process::exit(1);
         }
     }

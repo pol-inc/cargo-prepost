@@ -1,11 +1,15 @@
 use std::env;
 
 fn main() {
-    simple_logger::init_with_env().expect("Failed to init logger");
+    simple_logger::SimpleLogger::new()
+        .with_level(log::LevelFilter::Off)
+        .env()
+        .init()
+        .expect("Failed to init logger");
 
     let args: Vec<_> = env::args().skip(1).collect();
     log::info!("args: {args:?}");
-    let subcommand = args.iter().skip_while(|v| v.starts_with("-")).next();
+    let subcommand = args.iter().find(|v| !v.starts_with("-"));
     log::info!("subcommand: {subcommand:?}");
 
     match subcommand.map(|v| v.as_str()) {

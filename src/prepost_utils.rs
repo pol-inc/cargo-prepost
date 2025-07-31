@@ -39,16 +39,16 @@ pub fn main(args: impl Iterator<Item = impl Into<OsString> + Clone>) {
                 let current_exe = match env::current_exe() {
                     Ok(v) => v,
                     Err(e) => {
-                        log::error!("Failed to get current executable path: {}", e.to_string());
+                        log::error!("Failed to get current executable path: {e}");
                         std::process::exit(1);
                     }
                 };
                 if let Err(e) = std::fs::create_dir_all(&path) {
-                    log::error!("Failed to create directory: {}", e.to_string());
+                    log::error!("Failed to create directory: {e}");
                     std::process::exit(1);
                 }
                 if let Err(e) = std::os::unix::fs::symlink(current_exe, new_cargo) {
-                    log::error!("Failed to create cargo symlink: {}", e.to_string());
+                    log::error!("Failed to create cargo symlink: {e}");
                     std::process::exit(1);
                 }
             }
@@ -65,7 +65,7 @@ pub fn main(args: impl Iterator<Item = impl Into<OsString> + Clone>) {
             let new_path = match env::join_paths(new_path) {
                 Ok(v) => v,
                 Err(e) => {
-                    log::error!("Failed to get new PATH: {}", e.to_string());
+                    log::error!("Failed to get new PATH: {e}");
                     std::process::exit(1);
                 }
             };
