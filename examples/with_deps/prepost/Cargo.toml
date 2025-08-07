@@ -1,0 +1,12 @@
+[package]
+name = "prepost"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "postrun"
+path = "postrun.rs"
+
+[dependencies]
+log = "0.4.27"
+simple_logger = "5.0.0"
